@@ -1,0 +1,54 @@
+- name: Check for existing ansible installation
+  stat:
+    path: '{{ spark_target_dir }}'
+  register: spark_installation
+
+- block:
+  - name: Installing dependencies
+    apt:
+      name: [ "openjdk-8-jdk", "scala", "python3" ]
+      update_cache: yes
+      cache_valid_time: 3600
+
+  - name: Downloading Apache Spark sources
+    get_url:
+      url: "{{ spark_tarball_url }}"
+      dest: "/tmp/{{ spark_tarball }}"
+      mode: 644
+
+  - name: Unpacking tarball
+    unarchive:
+      remote_src: yes
+      dest: '{{ spark_parent_dir }}'
+      src: '/tmp/{{ spark_tarball }}'
+      creates: '{{spark_parent_dir}}/{{ spark_name }}'
+
+  - name: Link spark directory
+    become_user: root
+    file:
+      src: '{{ spark_parent_dir }}/{{ spark_name }}'
+      dest: '{{ spark_target_dir }}'
+      state: link
+
+  - name: Add spark home to the environment
+    lineinfile:
+      path: "/etc/environment"
+      line: "{{ item }}"
+    with_items:
+      - 'SPARK_HOME={{ spark_target_dir }}'
+      - 'PYSPARK_PYTHON=/usr/bin/python3'
+
+  # Courtesy of: https://coderwall.com/p/ynvi0q/updating-path-with-ansible-system-wide
+  - name: Include Spark in default path
+    lineinfile:
+      dest: "/etc/environment"
+      backrefs: yes
+      regexp: 'PATH=(["]*)((?!.*?{{ item }}).*?)(["]*)$'
+      line: 'PATH=\1\2:{{ item }}\3'
+    with_items:
+      - "{{ spark_target_dir }}/bin"
+      - "{{ spark_target_dir }}/sbin"
+
+  when: not spark_installation.stat.exists
+  become: True
+  become_user: root

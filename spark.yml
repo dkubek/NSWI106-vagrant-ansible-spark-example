@@ -1,0 +1,43 @@
+---
+- name: Install Apache Spark
+  hosts: all
+  roles:
+    - spark
+
+- name: Start master
+  hosts: master
+  tasks:
+    - name: Get SPARK_HOME
+      shell: 'printenv SPARK_HOME'
+      register: spark_home_out
+    - set_fact: spark_home={{ spark_home_out.stdout }}
+
+    - debug: var=spark_envs
+
+    - name: Configure master env
+      become: True
+      template: 
+        src: 'templates/spark-env.sh.j2'
+        dest: '{{ spark_home }}/conf/spark-env.sh'
+        owner: root
+        group: root
+        mode: 755
+
+    - name: Start master process
+      shell: "start-master.sh || true"
+      register: start_master_out
+      changed_when: "'running as process' not in start_master_out.stdout"
+
+
+- name: Start slaves
+  hosts: slaves
+  vars:
+    master_url: 'spark://{{spark_envs.SPARK_MASTER_HOST}}:{{spark_envs.SPARK_MASTER_PORT}}'
+  tasks:
+    - name: Stop all processes
+      shell: "stop-all.sh"
+
+    - name: Start slave process
+      shell: "start-slave.sh {{master_url}} || true"
+      register: start_slave_out
+      changed_when: "'running as process' not in start_slave_out.stdout"

@@ -1,0 +1,4 @@
+---
+spark_envs:
+  SPARK_MASTER_HOST: 10.0.1.10
+  SPARK_MASTER_PORT: 7077
