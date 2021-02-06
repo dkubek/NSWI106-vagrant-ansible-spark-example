@@ -21,12 +21,11 @@
       remote_src: yes
       dest: '{{ spark_parent_dir }}'
       src: '/tmp/{{ spark_tarball }}'
-      creates: '{{spark_parent_dir}}/{{ spark_name }}'
+      creates: '{{spark_parent_dir}}/{{ spark_fullname }}'
 
   - name: Link spark directory
-    become_user: root
     file:
-      src: '{{ spark_parent_dir }}/{{ spark_name }}'
+      src: '{{ spark_parent_dir }}/{{ spark_fullname }}'
       dest: '{{ spark_target_dir }}'
       state: link
 

@@ -1,10 +1,11 @@
 ---
 spark_mirror: "https://downloads.apache.org/spark"
-spark_version: "spark-3.0.1"
+spark_version: "3.0.1"
+spark_name: "spark-{{ spark_version }}"
 hadoop_version: "hadoop3.2"
 
-spark_name: "{{ spark_version }}-bin-{{ hadoop_version }}"
-spark_tarball: '{{ spark_name }}.tgz'
+spark_fullname: "{{ spark_version }}-bin-{{ hadoop_version }}"
+spark_tarball: "{{ spark_fullname }}.tgz"
 spark_tarball_url: "{{ spark_mirror }}/{{ spark_version }}/{{ spark_tarball }}"
 
 spark_parent_dir: "/usr/local"
