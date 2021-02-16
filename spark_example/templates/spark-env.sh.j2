@@ -1,0 +1,3 @@
+{% if spark_envs is defined %}{% for key, value in spark_envs.items() %}
+{{key}}={{value}}
+{% endfor %}{% endif %}
