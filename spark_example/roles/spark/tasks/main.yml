@@ -39,7 +39,7 @@
     template:
       src: "spark-env.sh.j2"
       dest: "{{ spark_target_dir }}/conf/spark-env.sh"
-      mode: "0644"
+      mode: "0655"
 
   when: not spark_installation.stat.exists
   become: True

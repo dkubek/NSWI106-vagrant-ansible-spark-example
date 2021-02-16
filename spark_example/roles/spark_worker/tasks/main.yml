@@ -1,0 +1,9 @@
+---
+- name: Create worker systemd start script
+  become: true
+  template:
+    src: "spark-worker.service.j2"
+    dest: "/etc/systemd/system/spark-worker.service"
+    owner: root
+    group: root
+    mode: "0644"

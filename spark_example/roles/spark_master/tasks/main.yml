@@ -1,0 +1,9 @@
+---
+- name: Create master systemd start script
+  become: true
+  template:
+    src: "spark-master.service.j2"
+    dest: "/etc/systemd/system/spark-master.service"
+    owner: root
+    group: root
+    mode: "0644"

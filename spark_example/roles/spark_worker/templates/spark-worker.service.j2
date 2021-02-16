@@ -1,0 +1,13 @@
+[Unit]
+Description=Spark Worker Service
+Wants=network.target network-online.target
+After=network.target network-online.target
+
+[Service]
+WorkingDirectory={{ spark_link_dir }}
+ExecStart={{ spark_link_dir }}/sbin/start-slave.sh
+ExecStop={{ spark_link_dir }}/sbin/stop-slave.sh
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

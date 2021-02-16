@@ -29,17 +29,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
    config.vm.define box_name do |subconfig|
      subconfig.vm.box = BOX_IMAGE
      subconfig.vm.network :private_network, ip: "10.0.1.#{machine_id + IP_START}"
-
-     subconfig.vm.provision :ansible do |ansible|
-       # Disable default limit to connect to all the machines
-       ansible.limit = 'all'
-       ansible.playbook = 'dummy.yml'
-
-       ansible.groups = {
-         'slaves' => (1..SLAVE_COUNT).map { |i| "node#{i}" }
-       }
-     end
    end
+  end
+
+  config.vm.provision :ansible do |ansible|
+    # Disable default limit to connect to all the machines
+    ansible.limit = 'all'
+    ansible.playbook = 'dummy.yml'
+
+    ansible.groups = {
+      'slaves' => (1..SLAVE_COUNT).map { |i| "node#{i}" }
+    }
   end
 
   # Tell vagrant about system resources we want to use
