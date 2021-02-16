@@ -6,7 +6,7 @@
 - block:
   - name: Installing dependencies
     apt:
-      name: [ "openjdk-8-jdk", "scala", "python3" ]
+      name: [ "openjdk-7-jdk", "scala", "python3" ]
       update_cache: yes
       cache_valid_time: 3600
 
