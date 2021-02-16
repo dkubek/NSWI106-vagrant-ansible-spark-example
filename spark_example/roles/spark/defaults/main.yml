@@ -1,12 +1,20 @@
 ---
 spark_mirror: "https://downloads.apache.org/spark"
 spark_version: "3.0.1"
-spark_name: "spark-{{ spark_version }}"
 hadoop_version: "hadoop3.2"
 
-spark_fullname: "{{ spark_name }}-bin-{{ hadoop_version }}"
-spark_tarball: "{{ spark_fullname }}.tgz"
-spark_tarball_url: "{{ spark_mirror }}/{{ spark_name }}/{{ spark_tarball }}"
-
 spark_parent_dir: "/usr/local"
-spark_target_dir: "/usr/local/spark"
+spark_link_dir: "/usr/local/spark"
+
+spark_master_port: 7077
+
+spark_extra_vars: {}
+
+spark_default_vars:
+  SPARK_MASTER_HOST: "{{ spark_master_ip | default(hostvars['master'].ansible_default_ipv4.address) 
+                                         | default(hostvars['master'].ansible_all_ipv4_addresses[0]) }}"
+  SPARK_MASTER_PORT: "{{ spark_master_port }}"
+  SPARK_LOCAL_IP: "{{ spark_local_ip | default(ansible_default_ipv4.address)
+                                     | default(ansible_all_ipv4_addresses[0]) }}"
+  SPARK_HOME: "{{ spark_link_dir }}"
+  PYSPARK_PYTHON: "/usr/bin/python3"

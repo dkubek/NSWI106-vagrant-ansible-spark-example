@@ -6,7 +6,7 @@
 - block:
   - name: Installing dependencies
     apt:
-      name: [ "openjdk-7-jdk", "scala", "python3" ]
+      name: [ "openjdk-7-jdk", "python3" ]
       update_cache: yes
       cache_valid_time: 3600
 
@@ -21,32 +21,25 @@
       remote_src: yes
       dest: '{{ spark_parent_dir }}'
       src: '/tmp/{{ spark_tarball }}'
-      creates: '{{spark_parent_dir}}/{{ spark_fullname }}'
+      creates: "{{ spark_target_dir }}"
 
   - name: Link spark directory
     file:
       src: '{{ spark_parent_dir }}/{{ spark_fullname }}'
-      dest: '{{ spark_target_dir }}'
+      dest: '{{ spark_link_dir }}'
       state: link
 
-  - name: Add spark home to the environment
-    lineinfile:
-      path: "/etc/environment"
-      line: "{{ item }}"
-    with_items:
-      - 'SPARK_HOME={{ spark_target_dir }}'
-      - 'PYSPARK_PYTHON=/usr/bin/python3'
+  - name: Add spark to environment
+    template:
+      src: "spark.sh.j2"
+      dest: "/etc/profile.d/spark.sh"
+      mode: "0655"
 
-  # Courtesy of: https://coderwall.com/p/ynvi0q/updating-path-with-ansible-system-wide
-  - name: Include Spark in default path
-    lineinfile:
-      dest: "/etc/environment"
-      backrefs: yes
-      regexp: 'PATH=(["]*)((?!.*?{{ item }}).*?)(["]*)$'
-      line: 'PATH=\1\2:{{ item }}\3'
-    with_items:
-      - "{{ spark_target_dir }}/bin"
-      - "{{ spark_target_dir }}/sbin"
+  - name: Configure spark environment
+    template:
+      src: "spark-env.sh.j2"
+      dest: "{{ spark_target_dir }}/conf/spark-env.sh"
+      mode: "0644"
 
   when: not spark_installation.stat.exists
   become: True
