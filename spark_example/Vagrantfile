@@ -6,40 +6,60 @@
 VAGRANTFILE_API_VERSION = '2'
 
 # How many slave nodes we want to create
-SLAVE_COUNT = 2
+WORKER_COUNT = 4
+
+# Parameters of the created VMs
+VM_MEMORY = 6144
+VM_CPUS = 8
+
+# Default starting host address
+IP_START = 10
 
 # Default box to use
 BOX_IMAGE = 'debian/buster64'
 
-# Default starting address
-IP_START = 10
-
+# Playbook to run for provisioning
 PLAYBOOK = 'setup-spark.yml'
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Create the master node
   config.vm.define 'master', primary: true do |subconfig|
     subconfig.vm.box = BOX_IMAGE
-    subconfig.vm.network :private_network, ip: '10.0.1.10'
+    subconfig.vm.network :private_network, ip: '192.168.50.10'
+    subconfig.vm.hostname = 'master'
   end
 
+  spark_ip_addresses = { 
+    'master' => {
+      'spark_ip_address' => '192.168.50.10'
+    }
+  }
+
   # Create the slave nodes
-  (1..SLAVE_COUNT).each do |machine_id|
-   box_name = "node#{machine_id}"
+  (1..WORKER_COUNT).each do |machine_id|
+   box_name = "worker-" + machine_id.to_s.rjust(2, "0")
+   box_ip_address = "192.168.50.#{machine_id + IP_START}"
 
    # Setup one slave node
    config.vm.define box_name do |subconfig|
      subconfig.vm.box = BOX_IMAGE
-     subconfig.vm.network :private_network, ip: "10.0.1.#{machine_id + IP_START}"
+     subconfig.vm.network :private_network, ip: box_ip_address
+     subconfig.vm.hostname = box_name
 
-     if machine_id == SLAVE_COUNT
+     spark_ip_addresses[box_name] = {
+       'spark_ip_address' => box_ip_address
+     }
+
+     if machine_id == WORKER_COUNT
       subconfig.vm.provision :ansible do |ansible|
         # Disable default limit to connect to all the machines
         ansible.limit = 'all'
         ansible.playbook = PLAYBOOK
 
+        ansible.host_vars = spark_ip_addresses
+
         ansible.groups = {
-          'slaves' => (1..SLAVE_COUNT).map { |i| "node#{i}" }
+          'slaves' => (1..WORKER_COUNT).map { |i| "node#{i}" }
         }
       end
      end
@@ -49,9 +69,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Tell vagrant about system resources we want to use
   config.vm.provider :libvirt do |libvirt|
     # Customize the amount of memory on the VM:
-    libvirt.memory = 6144
+    libvirt.memory = VM_MEMORY
     # Customize the number of cpus on the VM:
-    libvirt.cpus = 8
+    libvirt.cpus = VM_CPUS
   end
 
   # Disable mounting the default vagrant folder
