@@ -1,0 +1,24 @@
+---
+- name: Check if systemd exists
+  stat: path=/lib/systemd/system/
+  register: systemd_check
+
+- block:
+  - name: Create master systemd start script
+    template:
+      src: "spark-master.service.j2"
+      dest: "/etc/systemd/system/spark-master.service"
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Create worker systemd start script
+    template:
+      src: "spark-worker.service.j2"
+      dest: "/etc/systemd/system/spark-worker.service"
+      owner: root
+      group: root
+      mode: 0644
+
+  when: systemd_check.stat.exists == True
+  become: True

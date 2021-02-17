@@ -1,0 +1,74 @@
+- name: Check for existing ansible installation
+  stat:
+    path: '{{ spark_target_dir }}'
+  register: spark_installation
+
+- block:
+  - name: Installing dependencies
+    apt:
+      name: [ "default-jdk", "python3" ]
+      update_cache: yes
+      cache_valid_time: 3600
+
+  - name: Create spark group
+    group:
+      name: spark
+      state: present
+
+  - name: create user
+    user:
+      name: spark
+      group: spark
+
+  - name: Downloading Apache Spark sources
+    get_url:
+      url: "{{ spark_tarball_url }}"
+      dest: "/tmp/{{ spark_tarball }}"
+      owner: spark
+      group: spark
+      mode: 644
+
+  - name: Unpacking tarball
+    unarchive:
+      remote_src: yes
+      dest: '{{ spark_parent_dir }}'
+      src: '/tmp/{{ spark_tarball }}'
+      owner: spark
+      group: spark
+      creates: "{{ spark_target_dir }}"
+
+  - name: Link spark directory
+    file:
+      src: '{{ spark_parent_dir }}/{{ spark_fullname }}'
+      dest: '{{ spark_link_dir }}'
+      state: link
+
+  - name: Add spark to environment
+    template:
+      src: "spark.sh.j2"
+      dest: "/etc/profile.d/spark.sh"
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Configure spark environment
+    template:
+      src: "spark-env.sh.j2"
+      dest: "{{ spark_target_dir }}/conf/spark-env.sh"
+      owner: spark
+      group: spark
+      mode: 0755
+
+  when: not spark_installation.stat.exists
+  become: True
+
+- name: Include systemd services
+  include: systemd.yml
+
+- name: debug vars
+  debug: var="{{ item }}"
+  with_items:
+    - spark_master_ip
+    - spark_master_port
+    - spark_local_ip
+    - spark_default_vars

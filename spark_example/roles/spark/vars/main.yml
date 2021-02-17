@@ -1,0 +1,8 @@
+---
+spark_env_vars: "{{ spark_extra_vars | default({}) | combine(spark_default_vars) }}"
+
+spark_name: "spark-{{ spark_version }}"
+spark_fullname: "{{ spark_name }}-bin-{{ hadoop_version }}"
+spark_tarball: "{{ spark_fullname }}.tgz"
+spark_tarball_url: "{{ spark_mirror }}/{{ spark_name }}/{{ spark_tarball }}"
+spark_target_dir: "{{ spark_parent_dir }}/{{ spark_fullname }}"

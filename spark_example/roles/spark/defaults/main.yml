@@ -1,0 +1,31 @@
+---
+spark_mirror: "https://downloads.apache.org/spark"
+spark_version: "3.0.1"
+hadoop_version: "hadoop3.2"
+
+spark_parent_dir: "/usr/local"
+spark_link_dir: "/usr/local/spark"
+
+# Custom master configuration
+spark_master_ip: "{{ hostvars['master'].ansible_default_ipv4.address
+                   | default(hostvars['master'].ansible_all_ipv4_addresses[0]) }}"
+spark_master_port: 7077
+
+# IP address Spark binds to on this node
+spark_local_ip: "{{ ansible_default_ipv4.address
+                  | default(ansible_all_ipv4_addresses[0]) }}"
+spark_worker_port: 7078
+
+# Custom spark runtime configuration options
+spark_extra_vars: {}
+
+spark_default_vars:
+  SPARK_MASTER_HOST: "{{ spark_master_ip }}"
+  SPARK_MASTER_PORT: "{{ spark_master_port }}"
+  SPARK_LOCAL_IP: "{{ spark_local_ip }}"
+  SPARK_HOME: "{{ spark_link_dir }}"
+
+  # Python binary executable to use for PySpark in both driver and workers
+  # (default is python2.7 if available, otherwise python). Property
+  # spark.pyspark.python take precedence if it is set
+  PYSPARK_PYTHON: "/usr/bin/python3"  

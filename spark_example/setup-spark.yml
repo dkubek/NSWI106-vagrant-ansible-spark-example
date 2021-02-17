@@ -1,0 +1,41 @@
+- name: Install spark
+  hosts: all
+  roles:
+    - common
+    - role: spark
+      vars:
+        spark_local_ip: "{{ hostvars[inventory_hostname].spark_ip_address }}"
+        spark_master_ip: "{{ hostvars['master'].spark_ip_address }}"
+  tasks:
+    - name: Add vagrant to spark group
+      become: True
+      user:
+        name: vagrant
+        groups: spark
+        append: yes
+
+- name: Start master node
+  hosts: master
+  tasks:
+    - name: Start master service
+      become: True
+      service:
+        name: spark-master
+        state: started
+        enabled: yes
+
+- name: Start worker nodes
+  hosts: all 
+  tasks:
+    - name: Start worker service
+      become: True
+      service:
+        name: spark-worker
+        state: started
+        enabled: yes
+
+- name: debug
+  hosts: all
+  tasks:
+    - name: print spark ip addresso
+      debug: var=hostvars[inventory_hostname].spark_ip_address

@@ -1,0 +1,20 @@
+---
+- block:
+  - name: Install the NTP daemon.
+    apt:
+      name: ntp
+
+  - name: Start ntp service
+    service: name=ntp state=started enabled=yes
+
+  - name: Set timezone to Prague
+    timezone: "name={{ ntp_timezone }}"
+
+  - name: Install ZeroConf networking
+    apt:
+      name: ['avahi-daemon', 'avahi-discover', 'libnss-mdns' ]
+
+  - name: Start avahi service
+    service: name=avahi-daemon state=started enabled=yes
+
+  become: True

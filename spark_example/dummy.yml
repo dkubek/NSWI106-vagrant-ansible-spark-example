@@ -1,0 +1,6 @@
+---
+- name: "Dummy playbook"
+  hosts: all
+  tasks:
+    - name: ping the host
+      ansible.builtin.ping:
