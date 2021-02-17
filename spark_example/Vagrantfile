@@ -14,6 +14,8 @@ BOX_IMAGE = 'debian/buster64'
 # Default starting address
 IP_START = 10
 
+PLAYBOOK = 'setup-spark.yml'
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Create the master node
   config.vm.define 'master', primary: true do |subconfig|
@@ -34,7 +36,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       subconfig.vm.provision :ansible do |ansible|
         # Disable default limit to connect to all the machines
         ansible.limit = 'all'
-        ansible.playbook = 'dummy.yml'
+        ansible.playbook = PLAYBOOK
 
         ansible.groups = {
           'slaves' => (1..SLAVE_COUNT).map { |i| "node#{i}" }

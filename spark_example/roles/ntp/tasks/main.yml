@@ -1,0 +1,12 @@
+---
+- name: Install the NTP daemon.
+  become: True
+  apt: name=ntp
+
+- name: Start ntp service
+  become: True
+  service: name=ntp state=started enabled=yes
+
+- name: Set timezone to Prague
+  become: True
+  timezone: "name={{ ntp_timezone }}"
