@@ -6,14 +6,26 @@
 - block:
   - name: Installing dependencies
     apt:
-      name: [ "openjdk-7-jdk", "python3" ]
+      name: [ "default-jdk", "python3" ]
       update_cache: yes
       cache_valid_time: 3600
+
+  - name: Create spark group
+    group:
+      name: spark
+      state: present
+
+  - name: create user
+    user:
+      name: spark
+      group: spark
 
   - name: Downloading Apache Spark sources
     get_url:
       url: "{{ spark_tarball_url }}"
       dest: "/tmp/{{ spark_tarball }}"
+      owner: spark
+      group: spark
       mode: 644
 
   - name: Unpacking tarball
@@ -21,6 +33,8 @@
       remote_src: yes
       dest: '{{ spark_parent_dir }}'
       src: '/tmp/{{ spark_tarball }}'
+      owner: spark
+      group: spark
       creates: "{{ spark_target_dir }}"
 
   - name: Link spark directory
@@ -33,14 +47,28 @@
     template:
       src: "spark.sh.j2"
       dest: "/etc/profile.d/spark.sh"
-      mode: "0655"
+      owner: root
+      group: root
+      mode: 0644
 
   - name: Configure spark environment
     template:
       src: "spark-env.sh.j2"
       dest: "{{ spark_target_dir }}/conf/spark-env.sh"
-      mode: "0655"
+      owner: spark
+      group: spark
+      mode: 0755
 
   when: not spark_installation.stat.exists
   become: True
-  become_user: root
+
+- name: Include systemd services
+  include: systemd.yml
+
+- name: debug vars
+  debug: var="{{ item }}"
+  with_items:
+    - spark_master_ip
+    - spark_master_port
+    - spark_local_ip
+    - spark_default_vars

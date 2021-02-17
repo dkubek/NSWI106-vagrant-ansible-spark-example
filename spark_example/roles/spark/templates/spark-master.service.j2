@@ -5,6 +5,8 @@ After=network.target network-online.target
 
 [Service]
 Type=forking
+User=spark
+WorkingDirectory={{ spark_link_dir }}
 ExecStart={{ spark_link_dir }}/sbin/start-master.sh 
 ExecStop={{ spark_link_dir }}/sbin/stop-master.sh
 Restart=on-abort

@@ -1,0 +1,44 @@
+- name: Install ntp
+  hosts: all
+  become: True
+  tasks:
+  - name: Install the NTP daemon to synchronize the clocks to ms.
+    apt: name=ntp
+
+  - name: Make sure ntp is started, and is enabled on restart.
+    service: name=ntp state=started enabled=yes
+
+  - name: Set timezone to Prague
+    timezone: name="Europe/Prague"
+
+- name: Install spark
+  hosts: all
+  roles:
+    - spark
+  tasks:
+    - name: Add vagrant to spark group
+      become: True
+      user:
+        name: vagrant
+        groups: spark
+        append: yes
+
+- name: Start master node
+  hosts: master
+  tasks:
+    - name: Start master service
+      become: True
+      service:
+        name: spark-master
+        state: started
+        enabled: yes
+
+- name: Start worker nodes
+  hosts: slaves
+  tasks:
+    - name: Start worker service
+      become: True
+      service:
+        name: spark-worker
+        state: started
+        enabled: yes
