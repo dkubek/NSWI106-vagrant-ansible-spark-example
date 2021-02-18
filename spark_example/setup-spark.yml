@@ -1,3 +1,4 @@
+---
 - name: Install spark
   hosts: all
   roles:
@@ -24,6 +25,17 @@
         state: started
         enabled: yes
 
+    - name: Copy example files to master
+      become: True
+      copy:
+        src: example/
+        dest: /example
+        owner: spark
+        group: spark
+        mode: 0755
+      tags:
+        - copy_example
+
 - name: Start worker nodes
   hosts: all 
   tasks:
@@ -34,8 +46,10 @@
         state: started
         enabled: yes
 
-- name: debug
-  hosts: all
-  tasks:
-    - name: print spark ip addresso
-      debug: var=hostvars[inventory_hostname].spark_ip_address
+#- name: debug
+#  hosts: all
+#  tasks:
+#    - name: print spark ip addresso
+#      debug: var=hostvars[inventory_hostname].spark_ip_address
+#  tags:
+#    - debug
