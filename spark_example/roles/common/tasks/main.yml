@@ -10,6 +10,12 @@
   - name: Set timezone to Prague
     timezone: "name={{ ntp_timezone }}"
 
+  become: True
+  tags:
+    - common
+    - ntp
+
+- block:
   - name: Install ZeroConf networking
     apt:
       name: ['avahi-daemon', 'avahi-discover', 'libnss-mdns' ]
@@ -18,3 +24,6 @@
     service: name=avahi-daemon state=started enabled=yes
 
   become: True
+  tags:
+    - common
+    - zeroconf

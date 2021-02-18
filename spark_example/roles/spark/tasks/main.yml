@@ -2,13 +2,15 @@
   stat:
     path: '{{ spark_target_dir }}'
   register: spark_installation
+  tags:
+    - spark
 
-- block:
+- name: Download, install and setup Spark environment
+  when: not spark_installation.stat.exists
+  block:
   - name: Installing dependencies
     apt:
       name: [ "default-jdk", "python3" ]
-      update_cache: yes
-      cache_valid_time: 3600
 
   - name: Create spark group
     group:
@@ -31,17 +33,11 @@
   - name: Unpacking tarball
     unarchive:
       remote_src: yes
-      dest: '{{ spark_parent_dir }}'
-      src: '/tmp/{{ spark_tarball }}'
+      dest: "{{ spark_parent_dir }}"
+      src: "/tmp/{{ spark_tarball }}"
       owner: spark
       group: spark
       creates: "{{ spark_target_dir }}"
-
-  - name: Link spark directory
-    file:
-      src: '{{ spark_parent_dir }}/{{ spark_fullname }}'
-      dest: '{{ spark_link_dir }}'
-      state: link
 
   - name: Add spark to environment
     template:
@@ -58,17 +54,43 @@
       owner: spark
       group: spark
       mode: 0755
-
-  when: not spark_installation.stat.exists
   become: True
+  tags:
+    - spark
+
+- name: Link spark directory
+  become: True
+  file:
+    src: "{{ spark_parent_dir }}/{{ spark_fullname }}"
+    dest: "{{ spark_link_dir }}"
+    state: link
+  tags:
+    - spark
+
+- name: Cleanup
+  become: True
+  file:
+    path: "/tmp/{{ spark_tarball }}"
+    state: absent
+  tags:
+    - spark
+    - spark_cleanup
+
 
 - name: Include systemd services
   include: systemd.yml
+  tags:
+    - spark
+    - spark_systemd 
 
-- name: debug vars
-  debug: var="{{ item }}"
-  with_items:
-    - spark_master_ip
-    - spark_master_port
-    - spark_local_ip
-    - spark_default_vars
+# Some debugging messages
+#
+# - name: debug vars
+#   debug: var="{{ item }}"
+#   with_items:
+#     - spark_master_ip
+#     - spark_master_port
+#     - spark_local_ip
+#     - spark_default_vars
+#   tags:
+#     - debug
