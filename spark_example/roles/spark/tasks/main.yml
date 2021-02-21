@@ -17,10 +17,11 @@
       name: spark
       state: present
 
-  - name: create user
+  - name: Create spark non-system user
     user:
       name: spark
       group: spark
+      shell: /usr/sbin/nologin
 
   - name: Downloading Apache Spark sources
     get_url:
@@ -28,7 +29,7 @@
       dest: "/tmp/{{ spark_tarball }}"
       owner: spark
       group: spark
-      mode: 644
+      mode: 0644
 
   - name: Unpacking tarball
     unarchive:

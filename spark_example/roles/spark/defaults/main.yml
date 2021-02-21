@@ -1,6 +1,6 @@
 ---
 spark_mirror: "https://downloads.apache.org/spark"
-spark_version: "3.0.1"
+spark_version: "3.0.2"
 hadoop_version: "hadoop3.2"
 
 spark_parent_dir: "/usr/local"
