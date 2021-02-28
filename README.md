@@ -1345,3 +1345,18 @@ Finally, we edit the ``setup-spark.yml``:
       service:
         name: spark-worker
         state: started
+
+## Some notes to Apache Spark ML
+### Download the data
+
+**Do not forget to distribute the files to the workers!**
+
+Boston Housing dataset:
+
+`wget https://raw.githubusercontent.com/selva86/datasets/master/BostonHousing.csv`
+
+Mnist train and test:
+
+`wget https://pjreddie.com/media/files/mnist_train.csv`
+`wget https://pjreddie.com/media/files/mnist_test.csv`
+
