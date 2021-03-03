@@ -1345,6 +1345,8 @@ Finally, we edit the ``setup-spark.yml``:
       service:
         name: spark-worker
         state: started
+```
+
 
 ## Some notes to Apache Spark ML
 ### Download the data
@@ -1360,3 +1362,217 @@ Mnist train and test:
 `wget https://pjreddie.com/media/files/mnist_train.csv`
 `wget https://pjreddie.com/media/files/mnist_test.csv`
 
+## Spark Shell
+
+Find the directory where Spark is installed using `echo $SPARK_HOME`.
+In this directory run `./bin/pyspark` to enter the Python Spark Shell. This connects
+you to the cluster automatically by creating SparkSession (more on that later).
+
+Spark Shell is interactive so you can try whatever you want. It's good for learning
+how Spark ML works.
+
+## SparkSession
+This is an entry point to the cluster. Every program you want to run on the cluster
+needs object of this type. Spark Shell creates it without you even noticing.
+
+You can create SparkSession by:
+```python
+spark = SparkSession.builder.master("spark://192.168.50.10:7077").appName("Linear regression with pipeline - Boston").getOrCreate()
+```
+where `spark://192.168.50.10:7077` is the address of the master node, then you choose a name for
+the app and create the SparkSession (or get one earlier created). Note that in older versions there was SparkContext, however
+the SparkSession replaced it and therefore SparkContext is no longer used. 
+
+## How to store data?
+
+There are multiple objects that can store data:
+1. RDD - Resilient Distributed Dataset
+2. DataFrame
+3. DataSet
+
+We will talk only about RDD and DataFrames since only these two types we use in our project.
+
+### RDD
+RDD is the oldest object that represents data. It is
+ - immutable - when the object is created it cannot be modified (modification returns a new RDD)
+ - fault tolerant - when something goes wrong the app doesn't crash
+ - distributed - RDD is divided into logic partitions and distributed between cluster worker nodes and therefore the parallelization is possible
+ - lazy evaluated - RDDs are lazy evaluated meaning actions and transformations are evaluated only when necessary. Imagine
+a person who is really lazy but does everything (you can rely on him). He just postpones all work
+and when you start to yell that you really need it, he finally does it.
+
+We can perform **transformations** and **actions** on RDD:
+ - transformations return a new RDD (since it is immutable). Possible transformations are `.map()`, `.filter()`, `.randomSplit()`, ...
+ - actions return non-RDD object (for example just an int number) - `.first()`, `.count()`, ...
+
+You can create a RDD from existing collections (lists for example) or from files on the disk.
+
+### DataFrames
+
+This is the newer object representing data that we will use in our applications.
+
+If you have experience with Pandas DataFames, this is virtually the same. You can think about Spark ML DataFrames
+as Pandas DataFrames. Spark DataFrames have only some optimizations under the hood.
+
+DataFrame is just a 2D array with labelled columns. It is also:
+ - immutable
+ - fault tolerant
+ - distributed
+ - lazy evaluated
+
+You can create one from RDD, existing collections (like lists) or from files on the disk (.csv, .txt, .xml, HDFS, S3, HBase, ...).
+We create DataFrame in `lr_pipeline.py` from a `.csv` file like this:
+
+`data = spark.read.format("csv").option('header', 'true').option('inferSchema', 'true').load(filename)`
+
+In our video there is explained what all the commands mean.
+
+You can also create DataFrame from a list like this:
+```python
+our_list = [('Martin', 180), ('David', 182), ('Dennis', 190), ('Tobias', 183)]
+
+columns = ["name", "height"]
+our_DataFrame = spark.CreateDataFrame(data=our_list, schema=columns)
+```
+
+#### Simple operations on DataFrames I didn't have time to show on video
+
+ - `df.show(10)` ... shows header and first 10 lines of the DataFrame
+ - `df.printSchema()` ... prints schema - the header with column type
+ - `df.select("col_name").show()` ... shows only col_name column
+ - `df.filter(df["col_name"] > 10).show()` .. filters only rows which have a value > 10 in column col_name
+
+And other very useful commands:
+`train, test = df.randomSplit([0.8, 0.2])` ... splits the DataFrame to train and test sets
+`train.schema.names` ... returns list of names of the columns
+
+## VectorAssembler
+Transformer that creates a new column by connecting more columns together to a list. We use it in `lr_pipeline.py`:
+
+```python
+v_assembler = VectorAssembler(inputCols=features_list, outputCol='features')
+new_dataframe = v_assembler.transform(old_dataframe)
+```
+
+## Pipeline
+
+This is a concept from ML that makes the whole workflow of data easier. You put data into pipeline
+and the pipeline transforms it to the output. In pipeline there can be many stages - many transformers
+and estimators. In file `lr_pipeline.py` we demonstrate a very simple pipeline with just one
+transformer (polynomial expansion) and one estimator (linear regression):
+
+```python
+poly_exp = PolynomialExpansion(degree=3, inputCol="features", outputCol="poly_features")
+lr = LinearRegression(regParam=0.1, featuresCol="poly_features")
+
+pipeline = Pipeline(stages=[poly_exp, lr])
+```
+
+Te pipeline then behaves like a simple estimator - you put data to input and on that
+data you fit a model:
+
+```python
+model = pipeline.fit(train)
+```
+
+A model is a transformer. It transforms input data into predictions:
+```python
+prediction = model.transform(train).select("prediction")
+```
+
+To evaluate our model we can use Evaluators - for linear regression:
+```python
+evaluator = RegressionEvaluator()
+
+prediction_and_labels = model.transform(train).select("prediction", "label")
+print("Precision train: " + str(evaluator.evaluate(prediction_and_labels)))
+
+prediction_and_labels = model.transform(test).select("prediction", "label")
+print("Precision test: " + str(evaluator.evaluate(prediction_and_labels)))
+```
+
+The whole file `lr_pipeline.py` with a `prepare_data()` function that prepares data for the model looks like this:
+
+```python
+from pyspark.ml.linalg import Vectors
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml import Pipeline
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.regression import LinearRegression
+from pyspark.ml.feature import PolynomialExpansion
+from pyspark.sql import SparkSession
+
+def prepare_data(filename):
+    """ 
+    Transform data for ML learning algorithm
+
+    Input: Data to be transformed (DataFrame)
+    Returns: Transformed data (DataFrame)
+    """
+
+    data = spark.read.format("csv").option('header', 'true').option('inferSchema', 'true').load(filename)
+
+    data = data.withColumnRenamed('medv', 'label')
+    # get columns that represent features
+    features_list = data.columns
+    # pop last column since it is our target
+    features_list.remove('label')
+
+    # make a new column with a vector of features
+    v_assembler = VectorAssembler(inputCols=features_list, outputCol='features')
+
+    return v_assembler.transform(data)
+
+if __name__ == "__main__":
+    train_ratio = 0.8
+    test_ratio = 1 - train_ratio
+
+    # create SparkSession - the entry to the cluster
+    spark = SparkSession.builder.master("spark://192.168.50.10:7077").appName("Linear regression with pipeline - Boston").getOrCreate()
+
+    data = prepare_data("BostonHousing.csv")
+
+    # split data into train and test DataFrames
+    train, test = data.randomSplit([train_ratio, test_ratio])
+
+    poly_exp = PolynomialExpansion(degree=3, inputCol="features", outputCol="poly_features")
+
+    lr = LinearRegression(regParam=0.1, featuresCol="poly_features")
+
+    pipeline = Pipeline(stages=[poly_exp, lr])
+    # fit the model
+    model = pipeline.fit(train)
+
+    evaluator = RegressionEvaluator()
+
+    prediction_and_labels = model.transform(train).select("prediction", "label")
+    print("Precision train: " + str(evaluator.evaluate(prediction_and_labels)))
+
+    prediction_and_labels = model.transform(test).select("prediction", "label")
+    print("Precision test: " + str(evaluator.evaluate(prediction_and_labels)))
+```
+
+## Running the application on the cluster
+
+To run the application on the cluster we use `bin/spark-submit` script in `$SPARK_HOME` directory.
+
+**Note**: every node needs access to the files used in our models. We use Boston Housing and MNIST datasets.
+I have created a script to download all data. This script has to be run in all worker nodes.
+
+To run the application on our cluster, run:
+`/usr/local/spark/bin/spark-submit --master "spark://192.168.50.10:7077" linear_regression.py 2> logfile`
+
+We redirected logs to logfile. If you want to see what Spark is doing, erase `2> logfile`.
+
+**Note**: As you can see in logfile, Spark does many things. It has to initialize the whole cluster,
+create server where you can watch your jobs (on localhost on port 4040) and many others.
+Therefore the overhead for our application is large. When we use as little amount of data
+as in the BostonHousing dataset, the size of the overhead causes the application to run for a
+longer time than in regular Python. Therefore Spark ML is not suitable for really tiny apps as
+it takes longer to run them due to the overhead. But Spark ML is excellent when we have large
+models and large amount of data - the overhead is tiny compared to the model and parallelization is
+really beneficial.
+
+## Multilayer Perceptron
+
+## Grid Search
