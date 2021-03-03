@@ -1362,6 +1362,15 @@ Mnist train and test:
 `wget https://pjreddie.com/media/files/mnist_train.csv`
 `wget https://pjreddie.com/media/files/mnist_test.csv`
 
+I have also created a script for downloading the data in `pyspark/download_data.sh`:
+```bash
+#!/usr/bin/env bash
+
+wget https://raw.githubusercontent.com/selva86/datasets/master/BostonHousing.csv
+wget https://pjreddie.com/media/files/mnist_train.csv
+wget https://pjreddie.com/media/files/mnist_test.csv
+```
+
 ## Spark Shell
 
 Find the directory where Spark is installed using `echo $SPARK_HOME`.
